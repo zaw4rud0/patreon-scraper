@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
 
 class Config:
     """
@@ -18,9 +20,9 @@ class Config:
     PASSWORD = os.getenv("PASSWORD")
     FIREFOX_PATH = os.getenv("FIREFOX_PATH")
     GECKO_DRIVER_PATH = os.getenv("GECKO_PATH")
-    ARTIST_FILE_PATH = os.getenv("ARTIST_FILE_PATH", "artists.json")
-    EXAMPLE_FILE_PATH = "artists-example.json"
-    OUTPUT_FOLDER = os.getenv("OUTPUT_FOLDER", "output/")
+    ARTIST_FILE_PATH = os.getenv("ARTIST_FILE_PATH", os.path.join(PROJECT_ROOT, "artists.json"))
+    EXAMPLE_FILE_PATH = os.path.join(PROJECT_ROOT, "artists-example.json")
+    OUTPUT_FOLDER = os.getenv("OUTPUT_FOLDER", os.path.join(PROJECT_ROOT, "output/"))
 
     @staticmethod
     def validate():

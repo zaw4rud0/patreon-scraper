@@ -163,3 +163,4 @@ cython_debug/
 
 # Ignore custom files
 /artists.json
+/output/
