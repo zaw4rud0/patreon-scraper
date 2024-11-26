@@ -156,13 +156,25 @@ def get_element_text(parent, xpath):
 
 def extract_post_date(post_element):
     """
-    Extract and normalize the post date to the format 'YYYY-MM-DD'.
+    Extract the raw post date text from the post element.
 
     :param post_element: WebElement representing a post.
-    :return: str Date in 'YYYY-MM-DD' format.
+    :return: str Raw date text or None if not found.
     """
-    raw_date = get_element_text(post_element, ".//a[@data-tag='post-published-at']/span/span")
+    raw_date = get_element_text(post_element, ".//a[@data-tag='post-published-at']/span/span") or \
+               get_element_text(post_element, ".//a[@data-tag='post-published-at']/span")
 
+    print(raw_date)
+    return parse_post_date(raw_date)
+
+
+def parse_post_date(raw_date):
+    """
+    Parse and normalize the raw post date to the format 'YYYY-MM-DD'.
+
+    :param raw_date: str Raw date text.
+    :return: str Date in 'YYYY-MM-DD' format or None if parsing fails.
+    """
     if not raw_date:
         return None  # Return None if no date is found
 
@@ -176,22 +188,26 @@ def extract_post_date(post_element):
         elif "days ago" in raw_date.lower():
             days_ago = int(raw_date.split()[0])
             return (today - timedelta(days=days_ago)).strftime("%Y-%m-%d")
+        elif "hours ago" in raw_date.lower():
+            hours_ago = int(raw_date.split()[0])
+            return (today - timedelta(hours=hours_ago)).strftime("%Y-%m-%d")
         else:
-            # TODO: Split by comma if present. [0] is month and day, [1] is year (if present)
-            #  If the year is not present, insert current year
+            # Handle specific dates like "November 26" or "November 26, 2024"
+            date_parts = raw_date.split(",")
 
-            # Try parsing with and without the year
-            try:
-                # Attempt to parse with the year
-                date_obj = datetime.strptime(raw_date, "%B %d, %Y")
-            except ValueError:
-                # Fallback to parsing without the year
+            if len(date_parts) == 2:
+                # Case: "November 26, 2024" (Month Day, Year)
+                date_obj = datetime.strptime(raw_date, "%b %d, %Y")
+            elif len(date_parts) == 1:
+                # Case: "November 26" (Month Day, no Year)
                 date_obj = datetime.strptime(raw_date, "%B %d")
                 # Assign the current year or adjust for December in January
-                if date_obj.month > today.month:
+                if date_obj.month > today.month or (date_obj.month == today.month and date_obj.day > today.day):
                     date_obj = date_obj.replace(year=today.year - 1)
                 else:
                     date_obj = date_obj.replace(year=today.year)
+            else:
+                raise ValueError(f"Unexpected date format: {raw_date}")
 
             return date_obj.strftime("%Y-%m-%d")
     except Exception as e:
