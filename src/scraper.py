@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta
-
 from selenium.common.exceptions import (
     NoSuchElementException,
     StaleElementReferenceException,
@@ -9,6 +7,8 @@ from selenium.common.exceptions import (
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
+
+from src.date_utils import parse_date
 
 
 def scrape_artist_posts(driver, artist):
@@ -53,24 +53,8 @@ def scrape_artist_posts(driver, artist):
                 break
             last_post_count = len(unique_post_ids)
 
-            # Try to click the "Load more" button if present
-            try:
-                initial_post_count = len(driver.find_elements(By.XPATH, "//div[@data-tag='post-card']"))
-
-                load_more_button = driver.find_element(By.XPATH, "//button[@type='button' and not(@aria-disabled='true') and .//div[text()='Load more']]")
-                if load_more_button.is_displayed():
-                    driver.execute_script("arguments[0].scrollIntoView(true);", load_more_button)
-                    load_more_button.click()
-
-                    # Wait for the number of posts to increase
-                    WebDriverWait(driver, 10).until(
-                        lambda d: len(d.find_elements(By.XPATH, "//div[@data-tag='post-card']")) > initial_post_count
-                    )
-                else:
-                    break
-            except (NoSuchElementException, TimeoutException, ElementClickInterceptedException):
+            if not click_load_more(driver):
                 break
-
     except TimeoutException:
         print("Timed out waiting for posts to load.")
     except Exception as e:
@@ -86,6 +70,32 @@ def wait_for_user_to_dismiss_consent():
     """
     input("Please dismiss the consent dialog (click the 'Reject non-essential' button) and press Enter to continue...")
     print("Continuing script execution...")
+
+
+def click_load_more(driver):
+    """
+    Clicks the "Load more" button if it exists and is clickable.
+
+    :param driver: Selenium WebDriver instance.
+    :return: True if the button was clicked, False otherwise.
+    """
+    try:
+        initial_post_count = len(driver.find_elements(By.XPATH, "//div[@data-tag='post-card']"))
+
+        load_more_button = driver.find_element(By.XPATH,
+                                               "//button[@type='button' and not(@aria-disabled='true') and .//div[text()='Load more']]")
+        if load_more_button.is_displayed():
+            driver.execute_script("arguments[0].scrollIntoView(true);", load_more_button)
+            load_more_button.click()
+
+            # Wait for the number of posts to increase
+            WebDriverWait(driver, 10).until(
+                lambda d: len(d.find_elements(By.XPATH, "//div[@data-tag='post-card']")) > initial_post_count
+            )
+            return True
+    except (NoSuchElementException, TimeoutException, ElementClickInterceptedException):
+        pass
+    return False
 
 
 def extract_post_data(post_element):
@@ -162,61 +172,12 @@ def extract_post_date(post_element):
     Extract the raw post date text from the post element.
 
     :param post_element: WebElement representing a post.
-    :return: str Raw date text or None if not found.
+    :return: str The date or None if not found.
     """
     raw_date = get_element_text(post_element, ".//a[@data-tag='post-published-at']/span/span") or \
                get_element_text(post_element, ".//a[@data-tag='post-published-at']/span")
 
-    return parse_post_date(raw_date)
-
-
-def parse_post_date(raw_date):
-    """
-    Parse and normalize the raw post date to the format 'YYYY-MM-DD'.
-
-    :param raw_date: str Raw date text.
-    :return: str Date in 'YYYY-MM-DD' format or None if parsing fails.
-    """
-    if not raw_date:
-        return None  # Return None if no date is found
-
-    today = datetime.now()
-
-    try:
-        if raw_date.lower() == "today":
-            return today.strftime("%Y-%m-%d")
-        elif raw_date.lower() == "yesterday":
-            return (today - timedelta(days=1)).strftime("%Y-%m-%d")
-        elif "days ago" in raw_date.lower():
-            days_ago = int(raw_date.split()[0])
-            return (today - timedelta(days=days_ago)).strftime("%Y-%m-%d")
-        elif "hours ago" in raw_date.lower():
-            hours_ago = int(raw_date.split()[0])
-            return (today - timedelta(hours=hours_ago)).strftime("%Y-%m-%d")
-        else:
-            # Handle specific dates like "November 26" or "November 26, 2024"
-            date_parts = raw_date.split(",")
-
-            if len(date_parts) == 2:
-                # Case: "Nov 26, 2024" (Month Day, Year)
-                date_obj = datetime.strptime(raw_date, "%b %d, %Y")
-            elif len(date_parts) == 1:
-                # Case: "November 26" (Month Day, no Year)
-                month_day = datetime.strptime(raw_date, "%B %d")
-
-                year = today.year
-
-                if month_day.month > today.month or (month_day.month == today.month and month_day.day > today.day):
-                    year -= 1
-
-                date_obj = datetime(year, month_day.month, month_day.day)
-            else:
-                raise ValueError(f"Unexpected date format: {raw_date}")
-
-            return date_obj.strftime("%Y-%m-%d")
-    except Exception as e:
-        print(f"Error parsing date '{raw_date}': {e}")
-        return None
+    return parse_date(raw_date)
 
 
 def get_element_attribute(parent, xpath, attribute):
