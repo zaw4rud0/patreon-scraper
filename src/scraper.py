@@ -20,6 +20,7 @@ def scrape_artist_posts(driver, artist, output_folder):
 
     :param driver: Selenium WebDriver instance.
     :param artist: dict containing artist information with 'display_name' and 'url_name' keys.
+    :param output_folder:
     :returns: A list of dictionaries, each representing a post's data.
     """
     url_name = artist["url_name"]
@@ -48,6 +49,8 @@ def scrape_artist_posts(driver, artist, output_folder):
             for post in post_elements:
                 post_data = extract_post_data(post)
                 if post_data and post_data["id"] not in unique_post_ids:
+                    print(f"Processed post {post_data["id"]} - {post_data["title"]}")
+
                     unique_post_ids.add(post_data["id"])
                     new_posts.append(post_data)
 
@@ -221,7 +224,7 @@ def extract_post_tags(post_element):
     :returns: list A list of tag strings.
     """
     tags = post_element.find_elements(By.XPATH, ".//a[@data-tag='post-tag']")
-    return [tag.text.strip() for tag in tags]
+    return [tag.text.strip().lower() for tag in tags]
 
 
 def extract_image_urls(post_element):

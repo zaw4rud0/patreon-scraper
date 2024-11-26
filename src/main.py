@@ -1,5 +1,3 @@
-import json
-import os
 import time
 
 from src.config import Config
