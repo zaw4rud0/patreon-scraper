@@ -28,6 +28,7 @@ def scrape_artist_posts(driver, artist):
     wait_for_user_to_dismiss_consent()
 
     all_posts = []
+    unique_post_ids = set()
     last_post_count = -1
 
     try:
@@ -43,28 +44,31 @@ def scrape_artist_posts(driver, artist):
             # Extract data from the new posts and append to the list
             for post in post_elements:
                 post_data = extract_post_data(post)
-                if post_data and post_data not in all_posts:
+                if post_data and post_data["id"] not in unique_post_ids:
+                    unique_post_ids.add(post_data["id"])
                     all_posts.append(post_data)
 
             # Break the loop if the number of posts does not change
-            if len(post_elements) == last_post_count:
+            if len(unique_post_ids) == last_post_count:
                 break
-            last_post_count = len(post_elements)
+            last_post_count = len(unique_post_ids)
 
             # Try to click the "Load more" button if present
             try:
+                initial_post_count = len(driver.find_elements(By.XPATH, "//div[@data-tag='post-card']"))
+
                 load_more_button = driver.find_element(By.XPATH, "//button[@type='button' and not(@aria-disabled='true') and .//div[text()='Load more']]")
                 if load_more_button.is_displayed():
                     driver.execute_script("arguments[0].scrollIntoView(true);", load_more_button)
                     load_more_button.click()
-                    # Allow some time for new posts to load
-                    WebDriverWait(driver, 5).until(
-                        ec.presence_of_all_elements_located((By.XPATH, "//div[@data-tag='post-card']"))
+
+                    # Wait for the number of posts to increase
+                    WebDriverWait(driver, 10).until(
+                        lambda d: len(d.find_elements(By.XPATH, "//div[@data-tag='post-card']")) > initial_post_count
                     )
                 else:
                     break
             except (NoSuchElementException, TimeoutException, ElementClickInterceptedException):
-                # If the button is not present or clickable, assume all posts are loaded
                 break
 
     except TimeoutException:
@@ -164,7 +168,6 @@ def extract_post_date(post_element):
     raw_date = get_element_text(post_element, ".//a[@data-tag='post-published-at']/span/span") or \
                get_element_text(post_element, ".//a[@data-tag='post-published-at']/span")
 
-    print(raw_date)
     return parse_post_date(raw_date)
 
 
