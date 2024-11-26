@@ -121,7 +121,6 @@ def expand_post_content(post_element):
     Expands the post content if a "Show more" button is present.
 
     :param post_element: WebElement representing a post.
-    :returns: None
     """
     try:
         show_more_button = post_element.find_element(By.XPATH, ".//button[contains(text(), 'Show more')]")
@@ -199,16 +198,18 @@ def parse_post_date(raw_date):
             date_parts = raw_date.split(",")
 
             if len(date_parts) == 2:
-                # Case: "November 26, 2024" (Month Day, Year)
+                # Case: "Nov 26, 2024" (Month Day, Year)
                 date_obj = datetime.strptime(raw_date, "%b %d, %Y")
             elif len(date_parts) == 1:
                 # Case: "November 26" (Month Day, no Year)
-                date_obj = datetime.strptime(raw_date, "%B %d")
-                # Assign the current year or adjust for December in January
-                if date_obj.month > today.month or (date_obj.month == today.month and date_obj.day > today.day):
-                    date_obj = date_obj.replace(year=today.year - 1)
-                else:
-                    date_obj = date_obj.replace(year=today.year)
+                month_day = datetime.strptime(raw_date, "%B %d")
+
+                year = today.year
+
+                if month_day.month > today.month or (month_day.month == today.month and month_day.day > today.day):
+                    year -= 1
+
+                date_obj = datetime(year, month_day.month, month_day.day)
             else:
                 raise ValueError(f"Unexpected date format: {raw_date}")
 
