@@ -1,3 +1,4 @@
+import asyncio
 from selenium.common.exceptions import (
     NoSuchElementException,
     StaleElementReferenceException,
@@ -9,9 +10,10 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 
 from src.date_utils import parse_date
+from src.utils import store_post_images, save_posts_to_file
 
 
-def scrape_artist_posts(driver, artist):
+def scrape_artist_posts(driver, artist, output_folder):
     """
     Scrape posts from an artist's Patreon page, including loading more posts until the end.
     Handles consent modals or other obstructing elements.
@@ -27,12 +29,13 @@ def scrape_artist_posts(driver, artist):
 
     wait_for_user_to_dismiss_consent()
 
-    all_posts = []
     unique_post_ids = set()
     last_post_count = -1
 
     try:
         while True:
+            new_posts = []
+
             # Wait for posts to load
             WebDriverWait(driver, 10).until(
                 ec.presence_of_all_elements_located((By.XPATH, "//div[@data-tag='post-card']"))
@@ -46,7 +49,10 @@ def scrape_artist_posts(driver, artist):
                 post_data = extract_post_data(post)
                 if post_data and post_data["id"] not in unique_post_ids:
                     unique_post_ids.add(post_data["id"])
-                    all_posts.append(post_data)
+                    new_posts.append(post_data)
+
+            new_posts = asyncio.run(store_post_images(new_posts))
+            save_posts_to_file(new_posts, artist["url_name"], output_folder)
 
             # Break the loop if the number of posts does not change
             if len(unique_post_ids) == last_post_count:
@@ -59,8 +65,6 @@ def scrape_artist_posts(driver, artist):
         print("Timed out waiting for posts to load.")
     except Exception as e:
         print(f"An error occurred: {e}")
-
-    return all_posts
 
 
 def wait_for_user_to_dismiss_consent():
@@ -113,10 +117,12 @@ def extract_post_data(post_element):
         content = extract_post_text(post_element)
         tags = extract_post_tags(post_element)
 
+        images = extract_image_urls(post_element)
+
         url = get_element_attribute(post_element, ".//span[@data-tag='post-title']/a", "href")
         post_id = url.split("-")[-1]
 
-        return {"id": post_id, "title": title, "date": date, "content": content, "tags": tags, "url": url}
+        return {"id": post_id, "title": title, "date": date, "content": content, "images": images, "tags": tags, "url": url}
 
     except StaleElementReferenceException:
         pass
@@ -216,3 +222,21 @@ def extract_post_tags(post_element):
     """
     tags = post_element.find_elements(By.XPATH, ".//a[@data-tag='post-tag']")
     return [tag.text.strip() for tag in tags]
+
+
+def extract_image_urls(post_element):
+    """
+    Extracts image URLs from a post.
+
+    :param post_element: WebElement representing a post.
+    :returns: list A list of image URLs or an empty list if none are found.
+    """
+    try:
+        # Find all image elements inside the image grid
+        image_elements = post_element.find_elements(By.XPATH, ".//div[contains(@class, 'image-grid')]//img")
+
+        # Extract the 'src' attribute of each image element
+        image_urls = [img.get_attribute("src") for img in image_elements]
+        return image_urls
+    except NoSuchElementException:
+        return []
