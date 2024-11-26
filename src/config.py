@@ -23,6 +23,8 @@ class Config:
     ARTIST_FILE_PATH = os.getenv("ARTIST_FILE_PATH", os.path.join(PROJECT_ROOT, "artists.json"))
     EXAMPLE_FILE_PATH = os.path.join(PROJECT_ROOT, "artists-example.json")
     OUTPUT_FOLDER = os.getenv("OUTPUT_FOLDER", os.path.join(PROJECT_ROOT, "output/"))
+    DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+    REPLACE = os.getenv("REPLACE", "false").lower() == "true"
 
     @staticmethod
     def validate():
