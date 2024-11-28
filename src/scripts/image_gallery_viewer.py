@@ -139,18 +139,24 @@ class ImageGallery:
         window.title(os.path.basename(image_path))
         window.resizable(width=False, height=False)
 
-        # Resize the image to fit screen dimensions
-        screen_width, screen_height = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
-        max_width, max_height = int(screen_width * 0.8), int(screen_height * 0.8)
+        # Get the screen dimensions
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
         img_width, img_height = image.size
+
+        # Resize the image to fit screen dimensions
+        max_width, max_height = int(screen_width * 0.8), int(screen_height * 0.8)
 
         if img_width > max_width or img_height > max_height:
             scale = min(max_width / img_width, max_height / img_height)
-            image = image.resize((int(img_width * scale), int(img_height * scale)), Image.Resampling.LANCZOS)
+            img_width = int(img_width * scale)
+            img_height = int(img_height * scale)
+            image = image.resize((img_width, img_height), Image.Resampling.LANCZOS)
 
         img_display = ImageTk.PhotoImage(image)
         label = Label(window, image=img_display)
-        label.name = img_display
+        label.image = img_display
         label.pack()
 
         # Center the window on the screen
