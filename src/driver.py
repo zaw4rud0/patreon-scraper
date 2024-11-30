@@ -17,8 +17,8 @@ def init_driver():
         selenium.webdriver.Firefox: An initialized WebDriver instance for automating Firefox.
     """
     options = Options()
-    options.binary_location = Config.FIREFOX_PATH
-    service = Service(Config.GECKO_DRIVER_PATH)
+    options.binary_location = str(Config.FIREFOX_PATH)
+    service = Service(str(Config.GECKO_DRIVER_PATH))
     driver = webdriver.Firefox(service=service, options=options)
     driver.maximize_window()
     return driver

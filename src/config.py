@@ -1,10 +1,10 @@
-import json
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 class Config:
@@ -16,49 +16,67 @@ class Config:
     GeckoDriver binaries. It ensures that all required variables are set and the specified
     paths exist in the file system.
     """
-    EMAIL = os.getenv("EMAIL")
-    PASSWORD = os.getenv("PASSWORD")
-    FIREFOX_PATH = os.getenv("FIREFOX_PATH")
-    GECKO_DRIVER_PATH = os.getenv("GECKO_PATH")
-    ARTIST_FILE_PATH = os.getenv("ARTIST_FILE_PATH", os.path.join(PROJECT_ROOT, "artists.json"))
-    EXAMPLE_FILE_PATH = os.path.join(PROJECT_ROOT, "artists-example.json")
-    OUTPUT_FOLDER = os.getenv("OUTPUT_FOLDER", os.path.join(PROJECT_ROOT, "output/"))
-    DEBUG = os.getenv("DEBUG", "false").lower() == "true"
-    REPLACE = os.getenv("REPLACE", "false").lower() == "true"
+    EMAIL: str = os.getenv("EMAIL")
+    PASSWORD: str = os.getenv("PASSWORD")
+    FIREFOX_PATH: Path = Path(os.getenv("FIREFOX_PATH", ""))
+    GECKO_DRIVER_PATH: Path = Path(os.getenv("GECKO_PATH", ""))
+    ARTIST_FILE_PATH: Path = Path(
+        os.getenv("ARTIST_FILE_PATH", PROJECT_ROOT / "artists.json")
+    )
+    EXAMPLE_FILE_PATH: Path = PROJECT_ROOT / "artists-example.json"
+    OUTPUT_FOLDER: Path = Path(os.getenv("OUTPUT_FOLDER", PROJECT_ROOT / "output"))
+    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+    REPLACE: bool = os.getenv("REPLACE", "false").lower() == "true"
 
     @staticmethod
     def validate():
         """
-        Validates the configuration settings.
+        Validates the configuration settings and ensures necessary files and folders exist.
+        """
+        Config._validate_env_vars()
+        Config._validate_paths()
+        Config.ensure_artists_file()
+        Config.ensure_output_folder()
+
+    @staticmethod
+    def _validate_env_vars():
+        """
+         Validate essential environment variables.
         """
         if not Config.EMAIL or not Config.PASSWORD:
-            raise ValueError("EMAIL and PASSWORD must be set in the .env file")
+            raise ValueError("Both EMAIL and PASSWORD must be set in the .env file.")
 
-        if not Config.FIREFOX_PATH:
-            raise ValueError("FIREFOX_PATH must be specified in the .env file")
-        if not os.path.exists(Config.FIREFOX_PATH):
+    @staticmethod
+    def _validate_paths():
+        """
+        Validate file paths and ensure they exist.
+        """
+        if not Config.FIREFOX_PATH.exists():
             raise FileNotFoundError(f"FIREFOX_PATH does not exist: {Config.FIREFOX_PATH}")
 
-        if not Config.GECKO_DRIVER_PATH:
-            raise ValueError("GECKO_DRIVER_PATH must be specified in the .env file")
-        if not os.path.exists(Config.GECKO_DRIVER_PATH):
+        if not Config.GECKO_DRIVER_PATH.exists():
             raise FileNotFoundError(f"GECKO_DRIVER_PATH does not exist: {Config.GECKO_DRIVER_PATH}")
 
-        Config.ensure_artists_file()
-
-        if not os.path.exists(Config.OUTPUT_FOLDER):
-            os.makedirs(Config.OUTPUT_FOLDER, exist_ok=True)
+        if not Config.EXAMPLE_FILE_PATH.exists():
+            raise FileNotFoundError(f"EXAMPLE_FILE_PATH does not exist: {Config.EXAMPLE_FILE_PATH}")
 
     @staticmethod
     def ensure_artists_file():
         """
         Ensure `artists.json` exists. If not, create it by copying `artists-example.json`.
         """
-        if not os.path.exists(Config.ARTIST_FILE_PATH):
-            with open(Config.EXAMPLE_FILE_PATH, "r") as example_file:
-                data = json.load(example_file)
-            with open(Config.ARTIST_FILE_PATH, "w") as artists_file:
-                json.dump(data, artists_file, indent=4)
+        if not Config.ARTIST_FILE_PATH.exists():
+            data = Config.EXAMPLE_FILE_PATH.read_text(encoding="utf-8")
+            Config.ARTIST_FILE_PATH.write_text(data, encoding="utf-8")
             print(f"{Config.ARTIST_FILE_PATH} was not found.")
-            print(f"A copy of {Config.EXAMPLE_FILE_PATH} has been created as {Config.ARTIST_FILE_PATH}.")
+            print(
+                f"A copy of {Config.EXAMPLE_FILE_PATH} has been created as "
+                f"{Config.ARTIST_FILE_PATH}.")
             print(f"Please update {Config.ARTIST_FILE_PATH} with your artist information.")
+
+    @staticmethod
+    def ensure_output_folder():
+        """
+        Ensure the output folder exists.
+        """
+        Config.OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)

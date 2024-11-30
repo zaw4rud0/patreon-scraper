@@ -9,21 +9,24 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 
+from src.config import Config
 from src.date_utils import parse_date
-from src.utils import store_post_images, save_posts_to_file
+from src.utils import download_post_images, save_posts_to_file
 
 
-def scrape_artist_posts(driver, artist, output_folder):
+def scrape_artist_posts(driver, artist):
     """
     Scrape posts from an artist's Patreon page, including loading more posts until the end.
     Handles consent modals or other obstructing elements.
 
     :param driver: Selenium WebDriver instance.
     :param artist: dict containing artist information with 'display_name' and 'url_name' keys.
-    :param output_folder:
     :returns: A list of dictionaries, each representing a post's data.
     """
     url_name = artist["url_name"]
+
+    artist_folder = Config.OUTPUT_FOLDER / url_name
+    artist_folder.mkdir(parents=True, exist_ok=True)
 
     url = f"https://www.patreon.com/c/{url_name}/posts"
     driver.get(url)
@@ -54,8 +57,8 @@ def scrape_artist_posts(driver, artist, output_folder):
                     unique_post_ids.add(post_data["id"])
                     new_posts.append(post_data)
 
-            new_posts = asyncio.run(store_post_images(new_posts))
-            save_posts_to_file(new_posts, artist["url_name"], output_folder)
+            new_posts = asyncio.run(download_post_images(new_posts, artist_folder))
+            save_posts_to_file(new_posts, artist_folder)
 
             # Break the loop if the number of posts does not change
             if len(unique_post_ids) == last_post_count:
@@ -125,7 +128,8 @@ def extract_post_data(post_element):
         url = get_element_attribute(post_element, ".//span[@data-tag='post-title']/a", "href")
         post_id = url.split("-")[-1]
 
-        return {"id": post_id, "title": title, "date": date, "content": content, "images": images, "tags": tags, "url": url}
+        return {"id": post_id, "title": title, "date": date, "content": content, "images": images, "tags": tags,
+                "url": url}
 
     except StaleElementReferenceException:
         pass

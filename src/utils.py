@@ -1,13 +1,10 @@
 import json
-import os
 import re
 
 import aiohttp
 import asyncio
 from pathlib import Path
 from datetime import datetime
-
-from src.config import Config
 
 
 def load_artists(file_path="artists.json"):
@@ -26,14 +23,14 @@ def load_artists(file_path="artists.json"):
         raise ValueError(f"Error parsing JSON: {e}")
 
 
-async def download_image(session, url, folder_path):
+async def download_image(session, url, folder_path: Path):
     """
     Downloads an image from a URL and saves it to a specified folder with the given file name.
 
     :param session: An aiohttp ClientSession instance.
     :param url: The URL of the image to download.
     :param folder_path: The folder path where the image will be saved.
-    :return: The relative path to the downloaded image.
+    :return: The absolute path to the downloaded image.
     """
     folder_path.mkdir(parents=True, exist_ok=True)
 
@@ -53,12 +50,12 @@ async def download_image(session, url, folder_path):
                 file_path = folder_path / file_name
 
                 if file_path.exists():
-                    # If the file already exists, skip downloading
-                    return str(file_path.relative_to(Config.OUTPUT_FOLDER))
+                    # If the image already exists, skip downloading
+                    return file_path
 
                 with open(file_path, "wb") as f:
                     f.write(await response.read())
-                return str(file_path.relative_to(Config.OUTPUT_FOLDER))
+                return file_path
             else:
                 print(f"Failed to download {url}: {response.status}")
     except Exception as e:
@@ -66,14 +63,17 @@ async def download_image(session, url, folder_path):
     return None
 
 
-async def store_post_images(posts):
+async def download_post_images(posts, output_folder: Path):
     """
-    Stores images for posts asynchronously and updates their image attributes.
+    Download images for posts asynchronously and updates their image attributes.
 
     :param posts: A list of post dictionaries with a 'date' and 'images' attribute.
+    :param output_folder:
     :return: The list of posts with updated 'images' attributes.
     """
     async with aiohttp.ClientSession() as session:
+        print(f"Output folder: {output_folder}")
+
         tasks = []
 
         for post in posts:
@@ -81,7 +81,7 @@ async def store_post_images(posts):
             year = post_date.year
             month = f"{post_date.month:02d}"
 
-            folder_path = Path(Config.OUTPUT_FOLDER) / "images" / str(year) / str(month)
+            folder_path = output_folder / "images" / str(year) / str(month)
             for url in post["images"]:
                 tasks.append(download_image(session, url, folder_path))
 
@@ -93,32 +93,29 @@ async def store_post_images(posts):
         for post in posts:
             updated_images = []
             for _ in post["images"]:
-                relative_path = downloaded_paths[index]
+                relative_path = Path(downloaded_paths[index]).relative_to(output_folder)
+                print(relative_path)
                 if relative_path:
-                    updated_images.append(relative_path)
+                    updated_images.append(str(relative_path))
                 index += 1
             post["images"] = updated_images
 
     return posts
 
 
-def save_posts_to_file(posts, artist_name: str, output_folder):
+def save_posts_to_file(posts, output_folder: Path):
     """
     Save posts to a JSON file for the given artist by appending new data to existing data.
 
     :param posts: List of post dictionaries.
-    :param artist_name: The artist's name.
-    :param output_folder: Path to the base output folder.
+    :param output_folder: Path to the output folder of the specific artist.
     """
-    artist_folder = os.path.join(output_folder, artist_name)
-    posts_file = os.path.join(artist_folder, "posts.json")
-
-    os.makedirs(artist_folder, exist_ok=True)
+    posts_file = output_folder / "posts.json"
 
     existing_posts = []
 
     # Load existing posts if the file exists
-    if os.path.exists(posts_file):
+    if posts_file.exists():
         with open(posts_file, "r") as file:
             try:
                 existing_posts = json.load(file)
