@@ -1,0 +1,27 @@
+name: Python Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Setup Python environment
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      # Check Python syntax
+      - name: Check for Syntax Errors
+        run: |
+          find . -name "*.py" -print0 | xargs -0 python -m py_compile
+        
