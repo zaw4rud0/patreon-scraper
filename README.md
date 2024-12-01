@@ -47,3 +47,11 @@ python -m src.main
 ```
 pytest
 ```
+
+## Roadmap
+
+- [x] Ability to scrape different artists in one run
+- [x] Download images of scraped posts and place them in `/{OUTPUT_FOLDER}/{ARTIST}/{IMAGES}/{YEAR}/{MONTH}/`
+- [ ] Ability to store scraped posts in a database out of the box
+- [ ] More control over the scraping process, i.e. when the user wants to change the Patreon filters
+- [ ] GUI window to show scraped posts, including their images. Use scraped tags to filter and search.
