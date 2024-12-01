@@ -25,6 +25,16 @@ def load_artists(file_path="artists.json"):
         raise ValueError(f"Error parsing JSON: {e}")
 
 
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize a filename by removing or replacing invalid characters.
+    """
+    invalid_chars = r'<>:"/\\|?*'
+    for char in invalid_chars:
+        filename = filename.replace(char, "_")
+    return filename
+
+
 async def download_image(session, url, folder_path: Path):
     """
     Downloads an image from a URL and saves it to a specified folder with the given file name.
@@ -42,17 +52,19 @@ async def download_image(session, url, folder_path: Path):
                 content_disposition = response.headers.get("Content-Disposition")
                 if content_disposition:
                     match = re.search(r'filename="([^"]+)"', content_disposition)
-                    if match:
-                        file_name = match.group(1)
-                    else:
-                        raise ValueError("Filename not found in Content-Disposition header.")
+                    file_name = match.group(1) if match else None
                 else:
-                    raise ValueError("Content-Disposition header is missing.")
+                    file_name = None
 
+                # Fallback to using the basename of URL
+                if not file_name:
+                    file_name = url.split("/")[-1]
+
+                file_name = sanitize_filename(file_name)
                 file_path = folder_path / file_name
 
+                # Skip download if the file already exists
                 if file_path.exists():
-                    # If the image already exists, skip downloading
                     return file_path
 
                 with open(file_path, "wb") as f:
