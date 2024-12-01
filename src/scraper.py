@@ -113,7 +113,7 @@ def extract_post_data(post_element, artist):
         images = extract_image_urls(post_element)
 
         url = get_element_attribute(post_element, ".//span[@data-tag='post-title']/a", "href")
-        post_id = url.split("-")[-1]
+        post_id = int(url.split("-")[-1])
 
         return {"id": post_id, "title": title, "date": date, "content": content, "images": images, "tags": tags,
                 "url": url}

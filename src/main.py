@@ -36,6 +36,7 @@ def main():
                     break
     finally:
         print("Scraping complete.")
+        driver.close()
 
 
 def wait_for_user_to_dismiss_consent():
