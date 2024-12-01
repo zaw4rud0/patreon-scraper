@@ -15,13 +15,13 @@ def main():
     try:
         login(driver)
 
-        wait_for_user_to_dismiss_consent()
-
         artists = load_artists(Config.ARTIST_FILE_PATH)
         for artist in artists:
             print(f"Scraping posts for artist: {artist['display_name']} ({artist['url_name']})")
             url = f"https://www.patreon.com/c/{artist["url_name"]}/posts"
             driver.get(url)
+
+            wait_for_user_to_dismiss_consent()
 
             while True:
                 scrape_artist_posts(driver, artist)
