@@ -1,5 +1,3 @@
-import time
-
 from src.config import Config
 from src.driver import init_driver
 from src.login import login
