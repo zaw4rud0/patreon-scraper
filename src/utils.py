@@ -6,6 +6,8 @@ import asyncio
 from pathlib import Path
 from datetime import datetime
 
+from src.config import Config
+
 
 def load_artists(file_path="artists.json"):
     """
@@ -72,7 +74,8 @@ async def download_post_images(posts, output_folder: Path):
     :return: The list of posts with updated 'images' attributes.
     """
     async with aiohttp.ClientSession() as session:
-        print(f"Output folder: {output_folder}")
+        if Config.DEBUG:
+            print(f"Output folder: {output_folder}")
 
         tasks = []
 
@@ -94,7 +97,8 @@ async def download_post_images(posts, output_folder: Path):
             updated_images = []
             for _ in post["images"]:
                 relative_path = Path(downloaded_paths[index]).relative_to(output_folder)
-                print(relative_path)
+                if Config.DEBUG:
+                    print(relative_path)
                 if relative_path:
                     updated_images.append(str(relative_path))
                 index += 1

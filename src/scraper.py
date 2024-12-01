@@ -50,7 +50,7 @@ def scrape_artist_posts(driver, artist):
 
             # Extract data from the new posts and append to the list
             for post in post_elements:
-                post_data = extract_post_data(post)
+                post_data = extract_post_data(post, artist)
                 if post_data and post_data["id"] not in unique_post_ids:
                     print(f"Processed post {post_data["id"]} - {post_data["title"]}")
 
@@ -108,11 +108,12 @@ def click_load_more(driver):
     return False
 
 
-def extract_post_data(post_element):
+def extract_post_data(post_element, artist):
     """
     Extracts data from a single post element.
 
     :param post_element: WebElement representing a post.
+    :param artist: The artist of the post.
     :returns: A dictionary containing the post's title, date, text, and tags, or None if extraction fails.
     """
     try:
@@ -121,7 +122,7 @@ def extract_post_data(post_element):
         title = get_element_text(post_element, ".//span[@data-tag='post-title']/a")
         date = extract_post_date(post_element)
         content = extract_post_text(post_element)
-        tags = extract_post_tags(post_element)
+        tags = extract_post_tags(post_element, artist["tag_mapping"])
 
         images = extract_image_urls(post_element)
 
@@ -220,15 +221,32 @@ def extract_post_text(post_element):
     return "\n".join(paragraph.text.strip() for paragraph in paragraphs)
 
 
-def extract_post_tags(post_element):
+def extract_post_tags(post_element, tags_mapping):
     """
     Extracts tags from a post.
 
     :param post_element: WebElement representing a post.
+    :param tags_mapping: The mapping of tags.
     :returns: list A list of tag strings.
     """
-    tags = post_element.find_elements(By.XPATH, ".//a[@data-tag='post-tag']")
-    return [tag.text.strip().lower() for tag in tags]
+    raw_tags = post_element.find_elements(By.XPATH, ".//a[@data-tag='post-tag']")
+    raw_tags_texts = [tag.text.strip().lower() for tag in raw_tags]
+
+    # Normalize tags based on the tag mapping
+    effective_tags = []
+    for raw_tag in raw_tags_texts:
+        matched = False
+        for mapping in tags_mapping:
+            if raw_tag in mapping["alias"]:
+                effective_tags.append(mapping["tag"])
+                matched = True
+                break
+
+        if not matched:
+            # If no mapping is found, keep the original tag
+            effective_tags.append(raw_tag)
+
+    return effective_tags
 
 
 def extract_image_urls(post_element):
