@@ -28,11 +28,6 @@ def scrape_artist_posts(driver, artist):
     artist_folder = Config.OUTPUT_FOLDER / url_name
     artist_folder.mkdir(parents=True, exist_ok=True)
 
-    url = f"https://www.patreon.com/c/{url_name}/posts"
-    driver.get(url)
-
-    wait_for_user_to_dismiss_consent()
-
     unique_post_ids = set()
     last_post_count = -1
 
@@ -71,15 +66,6 @@ def scrape_artist_posts(driver, artist):
         print("Timed out waiting for posts to load.")
     except Exception as e:
         print(f"An error occurred: {e}")
-
-
-def wait_for_user_to_dismiss_consent():
-    """
-    Waits for the user to manually dismiss the consent dialog.
-    The user must press Enter to continue the script.
-    """
-    input("Please dismiss the consent dialog (click the 'Reject non-essential' button) and press Enter to continue...")
-    print("Continuing script execution...")
 
 
 def click_load_more(driver):
