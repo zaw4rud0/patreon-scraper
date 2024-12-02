@@ -1,3 +1,5 @@
+import time
+
 from src.config import Config
 from src.driver import init_driver
 from src.login import login
@@ -12,6 +14,9 @@ def main():
 
     try:
         login(driver)
+
+        # Wait for session to stabilize
+        time.sleep(5)
 
         artists = load_artists(Config.ARTIST_FILE_PATH)
         for artist in artists:
