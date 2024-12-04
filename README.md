@@ -30,15 +30,15 @@ The output is a JSON file that has the following structure:
 ]
 ```
 
-| Field     | Type           | Description                                                                                                                                           |
-|-----------|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `id`      | `<string>`     | The Patreon id of this post. It's guaranteed unique.                                                                                                  |
-| `title`   | `<string>`     | The title of the post.                                                                                                                                |
-| `date`    | `<YYYY-MM-DD>` | The publish date of the post. The format is always `YYYY-MM-DD`.                                                                                      |
-| `content` | `<string>`     | The body text of the post. Can be empty.                                                                                                              |
-| `images`  | `<string>`     | The images of the post. It always uses the relative path to the parent folder of the output JSON file. A post can contain no, one, or several images. |
-| `tags`    | `<string>`     | The tags of the post. Can be used to group or search posts.                                                                                           |
-| `url`     | `<string>`     | The Patreon URL of the post.                                                                                                                          |
+| Field     | Type           | Description                                                                                                               |
+|-----------|----------------|---------------------------------------------------------------------------------------------------------------------------|
+| `id`      | `<string>`     | The Patreon id of this post. It's guaranteed unique.                                                                      |
+| `title`   | `<string>`     | The title of the post.                                                                                                    |
+| `date`    | `<YYYY-MM-DD>` | The publish date of the post. The format is always `YYYY-MM-DD`.                                                          |
+| `content` | `<string>`     | The body text of the post. Can be empty.                                                                                  |
+| `images`  | `<string>`     | The images of the post. It always uses the relative path to the parent folder of the output JSON file. Between 0 and `N`. |
+| `tags`    | `<string>`     | The tags of the post. Can be used to group or search posts. Between 0 and `M`.                                            |
+| `url`     | `<string>`     | The Patreon URL of the post.                                                                                              |
 
 
 ## Setup
