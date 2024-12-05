@@ -28,8 +28,7 @@ def scrape_artist_posts(driver, artist):
     artist_folder = Config.OUTPUT_FOLDER / url_name
     artist_folder.mkdir(parents=True, exist_ok=True)
 
-    unique_post_ids = set()
-    last_post_count = -1
+    seen_post_ids = set()
 
     try:
         while True:
@@ -43,22 +42,23 @@ def scrape_artist_posts(driver, artist):
             # Extract all visible post elements
             post_elements = driver.find_elements(By.XPATH, "//div[@data-tag='post-card']")
 
-            # Extract data from the new posts and append to the list
-            for post in post_elements:
+            # Filter out elements with IDs that have already been seen
+            new_elements = [
+                post for post in post_elements
+                if extract_post_id(post) not in seen_post_ids
+            ]
+
+            # Process new elements
+            for post in new_elements:
                 post_data = extract_post_data(post, artist)
-                if post_data and post_data["id"] not in unique_post_ids:
+                if post_data and post_data["id"] not in seen_post_ids:
                     print(f"Processed post {post_data["id"]} - {post_data["title"]}")
 
-                    unique_post_ids.add(post_data["id"])
+                    seen_post_ids.add(post_data["id"])
                     new_posts.append(post_data)
 
             new_posts = asyncio.run(download_post_images(new_posts, artist_folder))
             save_posts_to_file(new_posts, artist_folder)
-
-            # Break the loop if the number of posts does not change
-            if len(unique_post_ids) == last_post_count:
-                break
-            last_post_count = len(unique_post_ids)
 
             if not click_load_more(driver):
                 break
@@ -251,3 +251,17 @@ def extract_image_urls(post_element):
         return image_urls
     except NoSuchElementException:
         return []
+
+
+def extract_post_id(post_element):
+    """
+    Extract the unique ID of a post from its element.
+
+    :param post_element: WebElement representing a post.
+    :returns: str The unique ID of the post or None if not found.
+    """
+    try:
+        url = get_element_attribute(post_element, ".//span[@data-tag='post-title']/a", "href")
+        return int(url.split("-")[-1])
+    except Exception:
+        return None
