@@ -65,11 +65,21 @@ pip install -r requirements.txt
 
 ### Configurations
 
+#### Program Configuration
+
 Make a copy of `.env.example` by running the following command:
 ```
 cp .env.example .env
 ```
 Replace the placeholder values in the `.env` file with the actual values.
+
+#### Artists Configuration
+
+Make a copy of `artists.example.json` by running the following command:
+```
+cp artists.example.json artists.json
+```
+In this file you can set the artists you want to scrape and define a tag mapping in case the artist has inconsistent tags on their posts.
 
 ### Running
 
