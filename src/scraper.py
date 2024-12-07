@@ -53,6 +53,8 @@ def scrape_artist_posts(driver, artist):
                 post_data = extract_post_data(post, artist)
                 if post_data and post_data["id"] not in seen_post_ids:
                     print(f"Processed post {post_data["id"]} - {post_data["title"]}")
+                    if Config.DEBUG:
+                        print(f"Found {len(post_data["images"])} images.")
 
                     seen_post_ids.add(post_data["id"])
                     new_posts.append(post_data)
@@ -243,11 +245,13 @@ def extract_image_urls(post_element):
     :returns: list A list of image URLs or an empty list if none are found.
     """
     try:
-        # Find all image elements inside the image grid
-        image_elements = post_element.find_elements(By.XPATH, ".//div[contains(@class, 'image-grid')]//img")
+        image_grid = post_element.find_elements(By.XPATH, ".//div[contains(@class, 'image-grid')]//img")
+        image_carousel = post_element.find_elements(By.XPATH, ".//div[contains(@class, 'image-carousel')]//img")
+
+        all_image_elements = image_grid + image_carousel
 
         # Extract the 'src' attribute of each image element
-        image_urls = [img.get_attribute("src") for img in image_elements]
+        image_urls = [img.get_attribute("src") for img in all_image_elements]
         return image_urls
     except NoSuchElementException:
         return []
