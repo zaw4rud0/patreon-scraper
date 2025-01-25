@@ -19,6 +19,12 @@ def parse_relative_date(raw_date, today):
     """
     if raw_date == "today":
         return today.strftime("%Y-%m-%d")
+    elif "minutes ago" in raw_date:
+        try:
+            minutes_ago = int(raw_date.split()[0])
+            return (today - timedelta(minutes=minutes_ago)).strftime("%Y-%m-%d")
+        except ValueError:
+            raise ValueError(f"Invalid 'minutes ago' format: {raw_date}")
     elif raw_date == "yesterday":
         return (today - timedelta(days=1)).strftime("%Y-%m-%d")
     elif "days ago" in raw_date:
